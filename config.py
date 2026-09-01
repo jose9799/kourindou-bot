@@ -45,7 +45,7 @@ EMBED_COLOR = 0xE05C8A
 EMBED_COLOR_ERROR = 0xB03A3A
 EMBED_COLOR_SUCCESS = 0x4E9A5B
 
-COGS = ("cogs.general", "cogs.economy", "cogs.voice", "cogs.shop")
+COGS = ("cogs.general", "cogs.economy", "cogs.voice", "cogs.shop", "cogs.games")
 
 # Per-guild overridable settings. The type of the default also defines the type
 # the admin command will coerce an override to.
@@ -66,10 +66,12 @@ SETTING_DEFAULTS: dict[str, int] = {
     "transfer_min_account_age_seconds": 24 * 3600,
     "bet_min": 10,
     "bet_max": 5000,
-    "game_cooldown_seconds": 10,
 }
 
 # Fixed operational values, not worth exposing to guild admins.
+# The game cooldown is fixed because command decorators are evaluated before any
+# guild lookup can happen, so a per-guild override would silently do nothing.
+GAME_COOLDOWN_SECONDS = 10
 VOICE_SETTLE_INTERVAL_MINUTES = 5
 SQUAD_LIFETIME_SECONDS = 12 * 3600
 SHOP_VIEW_TIMEOUT = 120
