@@ -134,9 +134,7 @@ class KourindouBot(commands.Bot):
             if interaction.response.is_done():
                 await interaction.followup.send(embed=embeds.error(message), ephemeral=True)
             else:
-                await interaction.response.send_message(
-                    embed=embeds.error(message), ephemeral=True
-                )
+                await interaction.response.send_message(embed=embeds.error(message), ephemeral=True)
 
 
 def _expected_error_message(error: Exception) -> str | None:

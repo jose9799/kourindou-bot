@@ -128,9 +128,7 @@ class AdminCog(commands.Cog, name="Administración"):
         kind = ItemKind(tipo)
         if kind is ItemKind.ROLE:
             if rol is None:
-                await ctx.send(
-                    embed=embeds.error(strings.ADMIN_ITEM_ROLE_REQUIRED), ephemeral=True
-                )
+                await ctx.send(embed=embeds.error(strings.ADMIN_ITEM_ROLE_REQUIRED), ephemeral=True)
                 return
             if not _bot_can_assign(ctx.guild, rol):
                 await ctx.send(embed=embeds.error(strings.ADMIN_ROLE_TOO_HIGH), ephemeral=True)
@@ -234,15 +232,11 @@ class AdminCog(commands.Cog, name="Administración"):
         await ctx.send(embed=embed, ephemeral=True)
 
     @eco_group.command(name="give", description="Otorga Fe a un miembro.")
-    async def eco_give(
-        self, ctx: commands.Context, member: discord.Member, amount: int
-    ) -> None:
+    async def eco_give(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
         await self._adjust(ctx, member, amount)
 
     @eco_group.command(name="take", description="Retira Fe a un miembro.")
-    async def eco_take(
-        self, ctx: commands.Context, member: discord.Member, amount: int
-    ) -> None:
+    async def eco_take(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
         await self._adjust(ctx, member, -amount)
 
     @eco_group.command(name="set", description="Fija el saldo exacto de un miembro.")
@@ -251,9 +245,7 @@ class AdminCog(commands.Cog, name="Administración"):
         balance = await self.bot.db.set_balance(member.id, ctx.guild.id, max(0, amount))
         await self._report_balance(ctx, member, balance)
 
-    async def _adjust(
-        self, ctx: commands.Context, member: discord.Member, delta: int
-    ) -> None:
+    async def _adjust(self, ctx: commands.Context, member: discord.Member, delta: int) -> None:
         assert ctx.guild is not None
         balance = await self.bot.db.add_faith(
             member.id, ctx.guild.id, delta, TxReason.ADMIN, ctx.author.id

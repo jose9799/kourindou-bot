@@ -361,9 +361,7 @@ class Database:
 
     # ----------------------------------------------------------------- chat award
 
-    async def try_award_chat(
-        self, user_id: int, guild_id: int, amount: int, cooldown: int
-    ) -> bool:
+    async def try_award_chat(self, user_id: int, guild_id: int, amount: int, cooldown: int) -> bool:
         """Credit chat faith unless the user is still on cooldown."""
         now = utcnow_ts()
         try:
@@ -739,14 +737,10 @@ class Database:
         return grouped
 
     async def close_squad(self, message_id: int) -> None:
-        await self.conn.execute(
-            "UPDATE squads SET closed = 1 WHERE message_id = ?", (message_id,)
-        )
+        await self.conn.execute("UPDATE squads SET closed = 1 WHERE message_id = ?", (message_id,))
 
     async def list_open_squads(self) -> list[int]:
-        async with self.conn.execute(
-            "SELECT message_id FROM squads WHERE closed = 0"
-        ) as cursor:
+        async with self.conn.execute("SELECT message_id FROM squads WHERE closed = 0") as cursor:
             rows = await cursor.fetchall()
         return [row["message_id"] for row in rows]
 

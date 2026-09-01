@@ -205,9 +205,7 @@ class UtilsCog(commands.Cog, name="Utilidades"):
 
     @commands.hybrid_command(name="addquote", description="Registra una frase célebre.")
     @commands.guild_only()
-    async def addquote(
-        self, ctx: commands.Context, member: discord.Member, *, texto: str
-    ) -> None:
+    async def addquote(self, ctx: commands.Context, member: discord.Member, *, texto: str) -> None:
         assert ctx.guild is not None
         if len(texto) > QUOTE_MAX_LENGTH:
             await ctx.send(
@@ -221,9 +219,7 @@ class UtilsCog(commands.Cog, name="Utilidades"):
         quote_id = await self.bot.db.add_quote(
             ctx.guild.id, member.id, ctx.author.id, texto, jump_url
         )
-        await ctx.send(
-            embed=embeds.success("💬", strings.QUOTE_ADDED.format(quote_id=quote_id))
-        )
+        await ctx.send(embed=embeds.success("💬", strings.QUOTE_ADDED.format(quote_id=quote_id)))
 
     @commands.hybrid_command(name="quote", description="Muestra una frase aleatoria.")
     @commands.guild_only()
@@ -268,9 +264,7 @@ class UtilsCog(commands.Cog, name="Utilidades"):
         assert ctx.guild is not None
         deleted = await self.bot.db.delete_quote(quote_id, ctx.guild.id)
         message = (
-            strings.QUOTE_DELETED.format(quote_id=quote_id)
-            if deleted
-            else strings.QUOTE_NOT_FOUND
+            strings.QUOTE_DELETED.format(quote_id=quote_id) if deleted else strings.QUOTE_NOT_FOUND
         )
         embed = embeds.success("🗑️", message) if deleted else embeds.error(message)
         await ctx.send(embed=embed, ephemeral=not deleted)

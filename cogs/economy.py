@@ -85,9 +85,7 @@ class EconomyCog(commands.Cog, name="Economía"):
         if profile and profile["voice_minutes"]:
             embed.add_field(
                 name="Voz",
-                value=strings.BALANCE_VOICE.format(
-                    minutes=fmt_number(profile["voice_minutes"])
-                ),
+                value=strings.BALANCE_VOICE.format(minutes=fmt_number(profile["voice_minutes"])),
                 inline=True,
             )
         if profile and profile["daily_streak"]:
@@ -99,9 +97,7 @@ class EconomyCog(commands.Cog, name="Economía"):
         name="transfer", aliases=["pay"], description="Dona Puntos de Fe a otro miembro."
     )
     @commands.guild_only()
-    async def transfer(
-        self, ctx: commands.Context, member: discord.Member, amount: int
-    ) -> None:
+    async def transfer(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
         assert ctx.guild is not None
         minimum = await self.bot.db.get_setting(ctx.guild.id, "transfer_min_amount")
 
@@ -184,9 +180,7 @@ class EconomyCog(commands.Cog, name="Economía"):
 
     async def _account_age_message(self, ctx: commands.Context) -> str:
         assert ctx.guild is not None
-        min_age = await self.bot.db.get_setting(
-            ctx.guild.id, "transfer_min_account_age_seconds"
-        )
+        min_age = await self.bot.db.get_setting(ctx.guild.id, "transfer_min_account_age_seconds")
         profile = await self.bot.db.get_profile(ctx.author.id, ctx.guild.id)
         elapsed = utcnow_ts() - profile["created_at"] if profile else 0
         return strings.TRANSFER_TOO_YOUNG.format(remaining=format_duration(min_age - elapsed))

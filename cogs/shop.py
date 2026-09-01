@@ -334,9 +334,7 @@ class ShopCog(commands.Cog, name="Tienda"):
 
     @commands.hybrid_command(name="inventory", description="Muestra los artículos que posees.")
     @commands.guild_only()
-    async def inventory(
-        self, ctx: commands.Context, member: discord.Member | None = None
-    ) -> None:
+    async def inventory(self, ctx: commands.Context, member: discord.Member | None = None) -> None:
         assert ctx.guild is not None
         target = member or ctx.author
         entries = await self.bot.db.get_inventory(target.id, ctx.guild.id)

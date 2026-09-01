@@ -87,9 +87,7 @@ class GamesCog(commands.Cog, name="Juegos"):
         """Credit winnings and return the resulting balance."""
         assert ctx.guild is not None
         if amount > 0:
-            return await self.bot.db.add_faith(
-                ctx.author.id, ctx.guild.id, amount, TxReason.PAYOUT
-            )
+            return await self.bot.db.add_faith(ctx.author.id, ctx.guild.id, amount, TxReason.PAYOUT)
         return await self.bot.db.get_balance(ctx.author.id, ctx.guild.id)
 
     async def _send_result(
@@ -194,16 +192,10 @@ class GamesCog(commands.Cog, name="Juegos"):
                 amount=fmt_number(payout - amount), currency=config.CURRENCY
             )
             if multiplier
-            else strings.ROULETTE_LOSS.format(
-                amount=fmt_number(amount), currency=config.CURRENCY
-            )
+            else strings.ROULETTE_LOSS.format(amount=fmt_number(amount), currency=config.CURRENCY)
         )
-        description = (
-            strings.ROULETTE_RESULT.format(number=number, color=color) + "\n" + outcome
-        )
-        await self._send_result(
-            ctx, strings.ROULETTE_TITLE, description, bool(multiplier), balance
-        )
+        description = strings.ROULETTE_RESULT.format(number=number, color=color) + "\n" + outcome
+        await self._send_result(ctx, strings.ROULETTE_TITLE, description, bool(multiplier), balance)
 
 
 def _slots_outcome(reels: list[SlotSymbol]) -> tuple[int, SlotSymbol | None]:
