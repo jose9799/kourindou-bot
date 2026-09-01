@@ -14,15 +14,17 @@ diaria— y gastan en una tienda de roles y permisos, o apuestan en minijuegos t
 
 | | |
 |---|---|
-| **Versión de especificación** | 1.2.0 |
-| **Fase actual** | **Fase 1 — Estructura y Base de Datos** (no iniciada) |
-| **Fases completadas** | Fase 0 — Diseño y Especificación |
-| **Código escrito** | Ninguno todavía |
+| **Versión de especificación** | 1.2.1 |
+| **Fases implementadas** | 0 a 6 — el bot está completo a nivel de código |
+| **Estado** | ⚠️ **Sin ejecutar todavía**: falta instalar Python y hacer el primer arranque |
 | **Última actualización** | 2026-09-01 |
 
-**Lo siguiente que toca hacer:** montar el andamiaje del proyecto (`main.py`, `config.py`,
-`database/`) para tener un bot que arranque, cree su base de datos y responda a un `/ping`.
-El desglose completo está en [`roadmap.md`](roadmap.md) → Fase 1.
+**Lo siguiente que toca hacer:** instalar Python 3.10+, crear el entorno virtual, pasar `ruff`
+y arrancar el bot por primera vez para recorrer las verificaciones de cada fase. La lista
+concreta está en [`roadmap.md`](roadmap.md) → *Pendiente Inmediato*.
+
+> 🔐 El token que hay ahora mismo en `.env` se compartió en texto plano y debe considerarse
+> comprometido. Regeneralo en el Developer Portal antes de poner el bot en producción.
 
 ---
 

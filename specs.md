@@ -2,8 +2,8 @@
 
 **Servidor:** Gensokyolis:Re
 **Temática:** Touhou Project
-**Versión:** 1.2.0 (Modelo de datos cerrado)
-**Estado:** Fase de Diseño / Listo para Fase 1
+**Versión:** 1.2.1 (Implementación completa)
+**Estado:** Fases 0-6 implementadas, pendientes de verificación en servidor
 **Entorno de Ejecución:** Python 3.10+ / `discord.py` v2.x
 **Arquitectura:** Asyncio + Cogs + `aiosqlite`
 
@@ -163,9 +163,34 @@ CREATE TABLE IF NOT EXISTS transactions (
     created_at   INTEGER NOT NULL
 );
 
+-- Convocatorias de partida. Añadidas en la v1.2.1: la especificación pedía que los
+-- botones de /squad sobrevivieran a un reinicio, y eso exige que su estado no viva
+-- solo en memoria.
+CREATE TABLE IF NOT EXISTS squads (
+    message_id   INTEGER PRIMARY KEY,
+    guild_id     INTEGER NOT NULL,
+    channel_id   INTEGER NOT NULL,
+    host_id      INTEGER NOT NULL,
+    game         TEXT    NOT NULL,
+    scheduled_at TEXT,
+    created_at   INTEGER NOT NULL,
+    closed       INTEGER NOT NULL DEFAULT 0
+);
+
+CREATE TABLE IF NOT EXISTS squad_signups (
+    message_id   INTEGER NOT NULL,
+    user_id      INTEGER NOT NULL,
+    status       TEXT    NOT NULL,     -- 'in' | 'late' | 'out'
+    updated_at   INTEGER NOT NULL,
+    PRIMARY KEY (message_id, user_id),
+    FOREIGN KEY (message_id) REFERENCES squads (message_id) ON DELETE CASCADE
+);
+
 CREATE INDEX IF NOT EXISTS idx_users_faith ON users (guild_id, faith_points DESC);
 CREATE INDEX IF NOT EXISTS idx_inv_user    ON inventory (guild_id, user_id);
 CREATE INDEX IF NOT EXISTS idx_tx_user     ON transactions (guild_id, user_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_quotes_guild ON quotes (guild_id);
+CREATE INDEX IF NOT EXISTS idx_shop_guild  ON shop_items (guild_id, enabled);
 ```
 
 **Notas de integridad:**
@@ -254,7 +279,9 @@ Timeout de 120s en las views; los componentes se deshabilitan al expirar.
 **Reglas transversales:**
 * Apuesta mínima `10 🌸`, máxima configurable (default `5000 🌸`).
 * La apuesta se **descuenta antes** de resolver el juego, en la misma transacción.
-* Cooldown de `10s` por usuario y comando, para no saturar la BD con spam.
+* Cooldown de `10s` por usuario y comando, para no saturar la BD con spam. **No es
+  configurable por servidor**: los decoradores de comando se evalúan antes de que exista un
+  contexto de guild, así que un override no llegaría a aplicarse nunca.
 * **RTP objetivo ~95%.** Los multiplicadores de `kappa_slots` deben calcularse contra las
   probabilidades reales de la tabla de símbolos, no elegirse a ojo — el cálculo se documenta
   en un comentario del módulo.

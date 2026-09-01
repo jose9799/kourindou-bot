@@ -1,7 +1,7 @@
 """Server administration: settings, catalogue management and economy audits."""
 
 import logging
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from typing import TYPE_CHECKING, Literal
 
 import discord
@@ -225,7 +225,7 @@ class AdminCog(commands.Cog, name="Administración"):
 
         lines = []
         for entry in history:
-            when = datetime.fromtimestamp(entry.created_at, UTC).strftime("%d/%m %H:%M")
+            when = datetime.fromtimestamp(entry.created_at, timezone.utc).strftime("%d/%m %H:%M")
             sign = "+" if entry.delta >= 0 else ""
             lines.append(f"`{when}` **{sign}{fmt_number(entry.delta)}** · {entry.reason}")
         embed = embeds.base(
