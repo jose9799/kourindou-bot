@@ -56,6 +56,15 @@ SHOP_ROLE_FAILED = (
     "Avisa a un administrador: revisar la jerarquía de roles del bot."
 )
 
+SHOP_KIND_LABELS = {
+    "role": "🎭 Roles de facción",
+    "perk": "🔑 Permisos",
+    "cosmetic": "✨ Recompensas del servidor",
+    "consumable": "🧪 Consumibles",
+}
+SHOP_CATEGORY_PLACEHOLDER = "Categoría..."
+SHOP_TRUNCATED = "Mostrando los primeros {shown} de {total} artículos."
+
 INVENTORY_TITLE = "🎒 Inventario de {user}"
 INVENTORY_EMPTY = "No posees nada todavía. Pásate por la Tienda Kourindou."
 
