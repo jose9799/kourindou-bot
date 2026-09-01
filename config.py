@@ -45,7 +45,15 @@ EMBED_COLOR = 0xE05C8A
 EMBED_COLOR_ERROR = 0xB03A3A
 EMBED_COLOR_SUCCESS = 0x4E9A5B
 
-COGS = ("cogs.general", "cogs.economy", "cogs.voice", "cogs.shop", "cogs.games", "cogs.utils")
+COGS = (
+    "cogs.general",
+    "cogs.economy",
+    "cogs.voice",
+    "cogs.shop",
+    "cogs.games",
+    "cogs.utils",
+    "cogs.admin",
+)
 
 # Per-guild overridable settings. The type of the default also defines the type
 # the admin command will coerce an override to.

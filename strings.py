@@ -137,3 +137,5 @@ ADMIN_ROLE_TOO_HIGH = (
 ADMIN_ECO_DONE = "✅ Saldo de {user} actualizado a **{balance}** {currency}."
 ADMIN_AUDIT_TITLE = "🧾 Movimientos de {user}"
 ADMIN_AUDIT_EMPTY = "Sin movimientos registrados."
+ADMIN_ITEM_ROLE_REQUIRED = "❌ Un artículo de tipo `role` necesita el argumento `rol`."
+ADMIN_SEED_DONE = "✅ Artículos creados: **{created}** de {total}."
