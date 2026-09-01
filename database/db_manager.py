@@ -27,6 +27,7 @@ from database.models import (
     TransferResult,
     TxReason,
     VoiceSession,
+    WalletProfile,
 )
 
 logger = logging.getLogger(__name__)
@@ -65,6 +66,18 @@ class Database:
         await self._conn.execute("PRAGMA foreign_keys = ON")
         await self._conn.execute("PRAGMA journal_mode = WAL")
         await self._conn.executescript(self._schema_path.read_text(encoding="utf-8"))
+        async with self._conn.execute("PRAGMA table_info(users)") as cursor:
+            user_cols = {row["name"] for row in await cursor.fetchall()}
+        if "breakcoins" not in user_cols:
+            await self._conn.execute(
+                "ALTER TABLE users ADD COLUMN breakcoins INTEGER NOT NULL DEFAULT 0"
+            )
+        async with self._conn.execute("PRAGMA table_info(transactions)") as cursor:
+            tx_cols = {row["name"] for row in await cursor.fetchall()}
+        if "currency" not in tx_cols:
+            await self._conn.execute(
+                "ALTER TABLE transactions ADD COLUMN currency TEXT NOT NULL DEFAULT 'faith'"
+            )
         logger.info("Database ready | path=%s", self._path)
 
     async def close(self) -> None:
@@ -166,11 +179,13 @@ class Database:
         delta: int,
         reason: TxReason,
         counterparty: int | None = None,
+        currency: str = "faith",
     ) -> None:
         await self.conn.execute(
-            "INSERT INTO transactions (guild_id, user_id, delta, reason, counterparty, created_at)"
-            " VALUES (?, ?, ?, ?, ?, ?)",
-            (guild_id, user_id, delta, reason.value, counterparty, utcnow_ts()),
+            "INSERT INTO transactions "
+            "(guild_id, user_id, delta, reason, counterparty, currency, created_at) "
+            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (guild_id, user_id, delta, reason.value, counterparty, currency, utcnow_ts()),
         )
 
     async def add_faith(
@@ -189,7 +204,7 @@ class Database:
                 "WHERE user_id = ? AND guild_id = ?",
                 (amount, user_id, guild_id),
             )
-            await self._log_tx(guild_id, user_id, amount, reason, counterparty)
+            await self._log_tx(guild_id, user_id, amount, reason, counterparty, currency="faith")
         return await self.get_balance(user_id, guild_id)
 
     async def try_spend(
@@ -211,7 +226,9 @@ class Database:
                 )
                 if cursor.rowcount == 0:
                     raise _AbortError(False)
-                await self._log_tx(guild_id, user_id, -amount, reason, counterparty)
+                await self._log_tx(
+                    guild_id, user_id, -amount, reason, counterparty, currency="faith"
+                )
         except _AbortError:
             return False
         return True
@@ -224,8 +241,92 @@ class Database:
                 "UPDATE users SET faith_points = ? WHERE user_id = ? AND guild_id = ?",
                 (amount, user_id, guild_id),
             )
-            await self._log_tx(guild_id, user_id, amount - current, TxReason.ADMIN)
+            await self._log_tx(
+                guild_id, user_id, amount - current, TxReason.ADMIN, currency="faith"
+            )
         return amount
+
+    async def get_breakcoins(self, user_id: int, guild_id: int) -> int:
+        async with self.conn.execute(
+            "SELECT breakcoins FROM users WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        ) as cursor:
+            row = await cursor.fetchone()
+        return row["breakcoins"] if row else 0
+
+    async def add_breakcoins(
+        self,
+        user_id: int,
+        guild_id: int,
+        amount: int,
+        reason: TxReason,
+        counterparty: int | None = None,
+    ) -> int:
+        """Credit breakcoins unconditionally and return the resulting balance."""
+        async with self._transaction():
+            await self.ensure_user(user_id, guild_id)
+            await self.conn.execute(
+                "UPDATE users SET breakcoins = breakcoins + ? WHERE user_id = ? AND guild_id = ?",
+                (amount, user_id, guild_id),
+            )
+            await self._log_tx(
+                guild_id, user_id, amount, reason, counterparty, currency="breakcoin"
+            )
+        return await self.get_breakcoins(user_id, guild_id)
+
+    async def try_spend_breakcoins(
+        self,
+        user_id: int,
+        guild_id: int,
+        amount: int,
+        reason: TxReason,
+        counterparty: int | None = None,
+    ) -> bool:
+        """Debit breakcoins only if the balance covers it. Returns False otherwise."""
+        try:
+            async with self._transaction():
+                await self.ensure_user(user_id, guild_id)
+                cursor = await self.conn.execute(
+                    "UPDATE users SET breakcoins = breakcoins - ? "
+                    "WHERE user_id = ? AND guild_id = ? AND breakcoins >= ?",
+                    (amount, user_id, guild_id, amount),
+                )
+                if cursor.rowcount == 0:
+                    raise _AbortError(False)
+                await self._log_tx(
+                    guild_id, user_id, -amount, reason, counterparty, currency="breakcoin"
+                )
+        except _AbortError:
+            return False
+        return True
+
+    async def set_breakcoins(self, user_id: int, guild_id: int, amount: int) -> int:
+        async with self._transaction():
+            await self.ensure_user(user_id, guild_id)
+            current = await self.get_breakcoins(user_id, guild_id)
+            await self.conn.execute(
+                "UPDATE users SET breakcoins = ? WHERE user_id = ? AND guild_id = ?",
+                (amount, user_id, guild_id),
+            )
+            await self._log_tx(
+                guild_id, user_id, amount - current, TxReason.ADMIN, currency="breakcoin"
+            )
+        return amount
+
+    async def get_wallet(self, user_id: int, guild_id: int) -> WalletProfile:
+        """Fetch the full wallet profile (all balances, rank and activity stats)."""
+        await self.ensure_user(user_id, guild_id)
+        profile = await self.get_profile(user_id, guild_id)
+        rank = await self.get_rank(user_id, guild_id)
+        return WalletProfile(
+            user_id=user_id,
+            guild_id=guild_id,
+            faith_points=profile["faith_points"] if profile else 0,
+            breakcoins=profile["breakcoins"] if profile else 0,
+            rank=rank,
+            voice_minutes=profile["voice_minutes"] if profile else 0,
+            daily_streak=profile["daily_streak"] if profile else 0,
+        )
 
     # ---------------------------------------------------------------------- daily
 
@@ -762,7 +863,7 @@ class Database:
         self, user_id: int, guild_id: int, limit: int = 15
     ) -> list[Transaction]:
         async with self.conn.execute(
-            "SELECT delta, reason, counterparty, created_at FROM transactions "
+            "SELECT delta, reason, counterparty, currency, created_at FROM transactions "
             "WHERE user_id = ? AND guild_id = ? ORDER BY created_at DESC, tx_id DESC LIMIT ?",
             (user_id, guild_id, limit),
         ) as cursor:
@@ -772,6 +873,7 @@ class Database:
                 delta=row["delta"],
                 reason=row["reason"],
                 counterparty=row["counterparty"],
+                currency=row["currency"],
                 created_at=row["created_at"],
             )
             for row in rows

@@ -52,8 +52,8 @@ decisiones ambiguas. Se puede borrar cuando ya no aporte contexto.
 Estas cinco decisiones estaban ambiguas en la primera versión de la especificación y ya están
 fijadas. Todo lo demás las asume:
 
-1. **Una sola moneda.** Puntos de Fe (`faith_points`). "P-Items" y "Poder" son sinónimos
-   estéticos del mismo contador, no una segunda economía.
+1. **Dos monedas.** Moneda principal: Puntos de Fe (`faith_points`, 🌸). Moneda especial/secundaria:
+   BreakCoin (`breakcoins`, 🪙). Consulta conjunta con `/wallet`.
 2. **Comandos híbridos.** `commands.hybrid_command` — cada comando funciona como `/slash`
    y como `!prefijo` desde una única implementación.
 3. **Multi-guild.** Toda fila de datos lleva `guild_id`. Aunque hoy solo corra en un servidor,
@@ -124,7 +124,8 @@ locales.
 ### Economía (Fase 2)
 - `/daily` — *Ofrenda al Santuario Hakurei*. Cooldown rodante de 22h, con racha acumulable
   (+10% por día, tope +100%).
-- `/faith [miembro]` — consulta de saldo.
+- `/faith [miembro]` — consulta de saldo de Fe.
+- `/wallet` — monedero privado (efímero) con saldo de Fe y BreakCoins.
 - `/transfer <miembro> <cantidad>` — donación entre miembros, con validaciones anti-exploit.
 - `/leaderboard` — Top 10 de fieles del servidor.
 

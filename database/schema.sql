@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS users (
     user_id        INTEGER NOT NULL,
     guild_id       INTEGER NOT NULL,
     faith_points   INTEGER NOT NULL DEFAULT 0,
+    breakcoins     INTEGER NOT NULL DEFAULT 0,
     last_daily     INTEGER,
     daily_streak   INTEGER NOT NULL DEFAULT 0,
     voice_minutes  INTEGER NOT NULL DEFAULT 0,
@@ -69,6 +70,7 @@ CREATE TABLE IF NOT EXISTS transactions (
     delta        INTEGER NOT NULL,
     reason       TEXT    NOT NULL,
     counterparty INTEGER,
+    currency     TEXT    NOT NULL DEFAULT 'faith',
     created_at   INTEGER NOT NULL
 );
 

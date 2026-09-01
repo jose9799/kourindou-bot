@@ -225,7 +225,8 @@ class AdminCog(commands.Cog, name="Administración"):
         for entry in history:
             when = datetime.fromtimestamp(entry.created_at, timezone.utc).strftime("%d/%m %H:%M")
             sign = "+" if entry.delta >= 0 else ""
-            lines.append(f"`{when}` **{sign}{fmt_number(entry.delta)}** · {entry.reason}")
+            symbol = config.CURRENCY_BREAKCOIN if entry.currency == "breakcoin" else config.CURRENCY
+            lines.append(f"`{when}` **{sign}{fmt_number(entry.delta)}** {symbol} · {entry.reason}")
         embed = embeds.base(
             strings.ADMIN_AUDIT_TITLE.format(user=member.display_name), "\n".join(lines)
         )
@@ -239,11 +240,33 @@ class AdminCog(commands.Cog, name="Administración"):
     async def eco_take(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
         await self._adjust(ctx, member, -amount)
 
-    @eco_group.command(name="set", description="Fija el saldo exacto de un miembro.")
+    @eco_group.command(name="set", description="Fija el saldo exacto de Fe de un miembro.")
     async def eco_set(self, ctx: commands.Context, member: discord.Member, amount: int) -> None:
         assert ctx.guild is not None
         balance = await self.bot.db.set_balance(member.id, ctx.guild.id, max(0, amount))
         await self._report_balance(ctx, member, balance)
+
+    @eco_group.command(name="give_breakcoins", description="Otorga BreakCoins a un miembro.")
+    async def eco_give_breakcoins(
+        self, ctx: commands.Context, member: discord.Member, amount: int
+    ) -> None:
+        await self._adjust_breakcoins(ctx, member, amount)
+
+    @eco_group.command(name="take_breakcoins", description="Retira BreakCoins a un miembro.")
+    async def eco_take_breakcoins(
+        self, ctx: commands.Context, member: discord.Member, amount: int
+    ) -> None:
+        await self._adjust_breakcoins(ctx, member, -amount)
+
+    @eco_group.command(
+        name="set_breakcoins", description="Fija los BreakCoins exactos de un miembro."
+    )
+    async def eco_set_breakcoins(
+        self, ctx: commands.Context, member: discord.Member, amount: int
+    ) -> None:
+        assert ctx.guild is not None
+        balance = await self.bot.db.set_breakcoins(member.id, ctx.guild.id, max(0, amount))
+        await self._report_breakcoins(ctx, member, balance)
 
     async def _adjust(self, ctx: commands.Context, member: discord.Member, delta: int) -> None:
         assert ctx.guild is not None
@@ -253,6 +276,17 @@ class AdminCog(commands.Cog, name="Administración"):
         if balance < 0:
             balance = await self.bot.db.set_balance(member.id, ctx.guild.id, 0)
         await self._report_balance(ctx, member, balance)
+
+    async def _adjust_breakcoins(
+        self, ctx: commands.Context, member: discord.Member, delta: int
+    ) -> None:
+        assert ctx.guild is not None
+        balance = await self.bot.db.add_breakcoins(
+            member.id, ctx.guild.id, delta, TxReason.ADMIN, ctx.author.id
+        )
+        if balance < 0:
+            balance = await self.bot.db.set_breakcoins(member.id, ctx.guild.id, 0)
+        await self._report_breakcoins(ctx, member, balance)
 
     async def _report_balance(
         self, ctx: commands.Context, member: discord.Member, balance: int
@@ -272,6 +306,28 @@ class AdminCog(commands.Cog, name="Administración"):
                     user=member.mention,
                     balance=fmt_number(balance),
                     currency=config.CURRENCY,
+                ),
+            )
+        )
+
+    async def _report_breakcoins(
+        self, ctx: commands.Context, member: discord.Member, balance: int
+    ) -> None:
+        assert ctx.guild is not None
+        logger.info(
+            "BreakCoins adjusted by admin | guild=%s admin=%s target=%s balance=%s",
+            ctx.guild.id,
+            ctx.author.id,
+            member.id,
+            balance,
+        )
+        await ctx.send(
+            embed=embeds.success(
+                "⚙️",
+                strings.ADMIN_ECO_BREAKCOIN_DONE.format(
+                    user=member.mention,
+                    balance=fmt_number(balance),
+                    currency=config.CURRENCY_BREAKCOIN,
                 ),
             )
         )

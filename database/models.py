@@ -68,6 +68,17 @@ class LeaderboardEntry:
 
 
 @dataclass(frozen=True, slots=True)
+class WalletProfile:
+    user_id: int
+    guild_id: int
+    faith_points: int
+    breakcoins: int
+    rank: int
+    voice_minutes: int
+    daily_streak: int
+
+
+@dataclass(frozen=True, slots=True)
 class ShopItem:
     item_id: int
     guild_id: int
@@ -105,6 +116,7 @@ class Transaction:
     delta: int
     reason: str
     counterparty: int | None
+    currency: str
     created_at: int
 
 

@@ -74,6 +74,8 @@ Leyenda: `[ ]` pendiente · `[~]` en progreso · `[x]` hecho
 - [x] `/daily` — cooldown rodante de 22h
 - [x] Racha: +10% por día, tope +100%, se reinicia pasadas 48h
 - [x] `/faith [miembro]` (alias `!balance`)
+- [x] `/wallet [miembro]` (alias `!wallet`, `!cartera`, `!monedero`) — Monedero con Fe y BreakCoins
+- [x] Gestión de BreakCoins en `/eco` (`give_breakcoins`, `take_breakcoins`, `set_breakcoins`)
 - [x] `/transfer <miembro> <cantidad>` (alias `!pay`)
 - [x] Validaciones: no a uno mismo, no a bots, cantidad ≥ mínimo, saldo, antigüedad 24h
 - [x] `/leaderboard` — Top 10 con puesto del invocador aunque no esté en el top

@@ -94,6 +94,50 @@ class EconomyCog(commands.Cog, name="Economía"):
         await ctx.send(embed=embeds.with_author(embed, target))
 
     @commands.hybrid_command(
+        name="wallet",
+        aliases=["cartera", "monedero"],
+        description="Consulta tu monedero personal de forma privada (Fe y BreakCoins).",
+    )
+    @commands.guild_only()
+    async def wallet(self, ctx: commands.Context) -> None:
+        assert ctx.guild is not None
+        target = ctx.author
+        wallet = await self.bot.db.get_wallet(target.id, ctx.guild.id)
+
+        title = strings.WALLET_TITLE.format(user=target.display_name)
+        embed = embeds.base(title)
+        embed.add_field(
+            name=strings.WALLET_FAITH_FIELD,
+            value=strings.BALANCE_LINE.format(
+                amount=fmt_number(wallet.faith_points), currency=config.CURRENCY
+            ),
+            inline=True,
+        )
+        embed.add_field(
+            name=strings.WALLET_BREAKCOIN_FIELD,
+            value=strings.BALANCE_LINE.format(
+                amount=fmt_number(wallet.breakcoins), currency=config.CURRENCY_BREAKCOIN
+            ),
+            inline=True,
+        )
+        embed.add_field(
+            name="Ranking de Fe",
+            value=strings.BALANCE_RANK.format(rank=wallet.rank),
+            inline=True,
+        )
+        if wallet.voice_minutes:
+            embed.add_field(
+                name="Voz",
+                value=strings.BALANCE_VOICE.format(minutes=fmt_number(wallet.voice_minutes)),
+                inline=True,
+            )
+        if wallet.daily_streak:
+            streak_value = f"**{wallet.daily_streak}** días"
+            embed.add_field(name="Racha diaria", value=streak_value, inline=True)
+
+        await ctx.send(embed=embeds.with_author(embed, target), ephemeral=True)
+
+    @commands.hybrid_command(
         name="transfer", aliases=["pay"], description="Dona Puntos de Fe a otro miembro."
     )
     @commands.guild_only()

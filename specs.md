@@ -16,7 +16,7 @@ documento asume que son verdad.
 
 | # | Decisión | Resolución |
 |---|----------|-----------|
-| D1 | **Moneda** | **Una sola moneda: Puntos de Fe (🌸 `faith_points`).** "P-Items / Power Points" queda como sinónimo puramente estético en textos de sabor. No existe una segunda economía. |
+| D1 | **Monedas** | **Dos monedas:** Principal: **Puntos de Fe (🌸 `faith_points`)**; Secundaria/Especial: **BreakCoin (🪙 `breakcoins`)**. Consulta unificada mediante `/wallet`. |
 | D2 | **Tipo de comando** | **Híbridos** (`commands.hybrid_command`). Cada comando responde tanto a `/comando` como a `!comando` desde una única implementación. |
 | D3 | **Alcance** | **Multi-guild por diseño.** Toda fila de datos lleva `guild_id`. Aunque hoy solo corra en Gensokyolis:Re, el esquema no asume un único servidor. |
 | D4 | **Configuración** | Valores de balance en `config.py` como *defaults*, sobreescribibles por servidor vía tabla `guild_config` (comandos de admin en fase posterior). |
@@ -37,6 +37,8 @@ chat, minijuegos de azar/Danmaku y utilidades para organizar partidas multijugad
 
 * **Moneda Principal:** Puntos de Fe (🌸 `Faith Points`). Referida en textos de sabor como
   "P-Items" o "Poder" indistintamente, pero es **el mismo contador**.
+* **Moneda Especial:** BreakCoin (🪙 `breakcoins`). Moneda secundaria para eventos y utilidades futuras.
+* **Monedero (`/wallet`):** Muestra el resumen de todas las monedas del usuario.
 * **Recompensa Diaria (`/daily`):** *Ofrenda al Santuario Hakurei*.
 * **Tienda (`/shop`):** *Tienda Kourindou* — artefactos, roles de facción y permisos VIP.
 * **Minijuegos (`/games`):** *Duelos Danmaku / Apuestas de Gensokyo*.
@@ -57,7 +59,7 @@ kourindou_bot/
 │   └── db_manager.py      # Capa de acceso asíncrona (aiosqlite), única puerta a la BD
 │
 ├── cogs/
-│   ├── economy.py         # daily, faith, transfer, leaderboard
+│   ├── economy.py         # daily, faith, wallet, transfer, leaderboard
 │   ├── shop.py            # Tienda Kourindou e inventario (discord.ui Views)
 │   ├── voice.py           # Fe por tiempo en voz y por mensajes
 │   ├── games.py           # danmaku_flip, kappa_slots, roulette
@@ -87,6 +89,7 @@ CREATE TABLE IF NOT EXISTS users (
     user_id        INTEGER NOT NULL,
     guild_id       INTEGER NOT NULL,
     faith_points   INTEGER NOT NULL DEFAULT 0,
+    breakcoins     INTEGER NOT NULL DEFAULT 0,
     last_daily     INTEGER,            -- epoch UTC del último /daily reclamado
     daily_streak   INTEGER NOT NULL DEFAULT 0,
     voice_minutes  INTEGER NOT NULL DEFAULT 0,  -- acumulado histórico (estadística)
@@ -210,7 +213,8 @@ CREATE INDEX IF NOT EXISTS idx_shop_guild  ON shop_items (guild_id, enabled);
 | Comando | Alias | Descripción |
 |---------|-------|-------------|
 | `/daily` | `!daily` | *Ofrenda al Santuario Hakurei*. Otorga Fe con cooldown. |
-| `/faith [miembro]` | `!balance` | Consulta el saldo propio o de un miembro. |
+| `/faith [miembro]` | `!balance` | Consulta el saldo propio o de un miembro (Puntos de Fe). |
+| `/wallet` | `!wallet`, `!cartera`, `!monedero` | Consulta privada (efímera) del propio monedero (Fe y BreakCoins). |
 | `/transfer <miembro> <cantidad>` | `!pay` | Donación de Fe entre miembros. |
 | `/leaderboard` | `!top` | Top 10 de fieles del servidor. |
 
