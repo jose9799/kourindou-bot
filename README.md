@@ -15,13 +15,16 @@ diaria— y gastan en una tienda de roles y permisos, o apuestan en minijuegos t
 | | |
 |---|---|
 | **Versión de especificación** | 1.2.1 |
-| **Fases implementadas** | 0 a 6 — el bot está completo a nivel de código |
-| **Estado** | ⚠️ **Sin ejecutar todavía**: falta instalar Python y hacer el primer arranque |
+| **Fases implementadas** | 0 a 6 — todas |
+| **Entorno** | Python 3.12.10 + `.venv` con dependencias y `ruff` instalados |
+| **Calidad** | `ruff check` y `ruff format --check` limpios sobre 19 ficheros |
+| **Pruebas** | 58 comprobaciones de la capa de datos ✅ · RTP verificado con 10⁶ tiradas ✅ |
+| **Estado** | ⚠️ Falta el primer arranque contra Discord |
 | **Última actualización** | 2026-09-01 |
 
-**Lo siguiente que toca hacer:** instalar Python 3.10+, crear el entorno virtual, pasar `ruff`
-y arrancar el bot por primera vez para recorrer las verificaciones de cada fase. La lista
-concreta está en [`roadmap.md`](roadmap.md) → *Pendiente Inmediato*.
+**Lo siguiente que toca hacer:** regenerar el token, activar los intents privilegiados,
+invitar el bot y recorrer las verificaciones marcadas con 🔌 en
+[`roadmap.md`](roadmap.md) → *Pendiente Inmediato*.
 
 > 🔐 El token que hay ahora mismo en `.env` se compartió en texto plano y debe considerarse
 > comprometido. Regeneralo en el Developer Portal antes de poner el bot en producción.
@@ -178,6 +181,14 @@ LOG_LEVEL=INFO
 
 ```bash
 python main.py
+```
+
+### Mantenimiento
+
+Copia de seguridad de la base de datos, segura de ejecutar con el bot en marcha:
+
+```bash
+python scripts/backup_db.py --keep 14
 ```
 
 ### Configuración en el Discord Developer Portal
