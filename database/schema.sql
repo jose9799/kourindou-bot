@@ -2,15 +2,17 @@
 -- All timestamps are Unix epoch integers in UTC.
 
 CREATE TABLE IF NOT EXISTS users (
-    user_id        INTEGER NOT NULL,
-    guild_id       INTEGER NOT NULL,
-    faith_points   INTEGER NOT NULL DEFAULT 0,
-    breakcoins     INTEGER NOT NULL DEFAULT 0,
-    last_daily     INTEGER,
-    daily_streak   INTEGER NOT NULL DEFAULT 0,
-    voice_minutes  INTEGER NOT NULL DEFAULT 0,
-    last_message   INTEGER,
-    created_at     INTEGER NOT NULL,
+    user_id          INTEGER NOT NULL,
+    guild_id         INTEGER NOT NULL,
+    faith_points     INTEGER NOT NULL DEFAULT 0,
+    breakcoins       INTEGER NOT NULL DEFAULT 0,
+    breakcoin_shards INTEGER NOT NULL DEFAULT 0,
+    breakcoin_pity   INTEGER NOT NULL DEFAULT 0,
+    last_daily       INTEGER,
+    daily_streak     INTEGER NOT NULL DEFAULT 0,
+    voice_minutes    INTEGER NOT NULL DEFAULT 0,
+    last_message     INTEGER,
+    created_at       INTEGER NOT NULL,
     PRIMARY KEY (user_id, guild_id)
 );
 

@@ -51,6 +51,27 @@ class EconomyCog(commands.Cog, name="Economía"):
                 ),
                 inline=False,
             )
+        if result.shard_won:
+            shard_text = strings.DAILY_SHARD_WON.format(
+                shard=config.CURRENCY_SHARD,
+                total=result.shards_total,
+                needed=config.SHARDS_PER_BREAKCOIN,
+            )
+            if result.shards_total >= config.SHARDS_PER_BREAKCOIN:
+                shard_text += "\n" + strings.DAILY_SHARD_READY.format(
+                    currency=config.CURRENCY_BREAKCOIN
+                )
+        else:
+            shard_text = strings.DAILY_SHARD_NONE.format(
+                shard=config.CURRENCY_SHARD,
+                total=result.shards_total,
+                needed=config.SHARDS_PER_BREAKCOIN,
+            )
+        embed.add_field(
+            name=strings.DAILY_SHARD_TITLE,
+            value=shard_text,
+            inline=False,
+        )
         embed.set_footer(
             text=strings.BALANCE_AFTER.format(
                 balance=fmt_number(result.new_balance), currency=config.CURRENCY
@@ -58,11 +79,12 @@ class EconomyCog(commands.Cog, name="Economía"):
         )
         await ctx.send(embed=embeds.with_author(embed, ctx.author))
         logger.info(
-            "Daily claimed | guild=%s user=%s amount=%s streak=%s",
+            "Daily claimed | guild=%s user=%s amount=%s streak=%s shard_won=%s",
             ctx.guild.id,
             ctx.author.id,
             result.amount,
             result.streak,
+            result.shard_won,
         )
 
     @commands.hybrid_command(
@@ -121,6 +143,15 @@ class EconomyCog(commands.Cog, name="Economía"):
             inline=True,
         )
         embed.add_field(
+            name=strings.WALLET_SHARD_FIELD,
+            value=strings.WALLET_SHARD_LINE.format(
+                current=wallet.breakcoin_shards,
+                needed=config.SHARDS_PER_BREAKCOIN,
+                shard=config.CURRENCY_SHARD,
+            ),
+            inline=True,
+        )
+        embed.add_field(
             name="Ranking de Fe",
             value=strings.BALANCE_RANK.format(rank=wallet.rank),
             inline=True,
@@ -136,6 +167,48 @@ class EconomyCog(commands.Cog, name="Economía"):
             embed.add_field(name="Racha diaria", value=streak_value, inline=True)
 
         await ctx.send(embed=embeds.with_author(embed, target), ephemeral=True)
+
+    @commands.hybrid_command(
+        name="craft",
+        aliases=["craftear", "forjar"],
+        description="Funde 4 Fragmentos para forjar 1 BreakCoin.",
+    )
+    @commands.guild_only()
+    async def craft(self, ctx: commands.Context) -> None:
+        assert ctx.guild is not None
+        success, coins, shards = await self.bot.db.craft_breakcoin(ctx.author.id, ctx.guild.id)
+        if not success:
+            await ctx.send(
+                embed=embeds.error(
+                    strings.CRAFT_INSUFFICIENT.format(
+                        needed=config.SHARDS_PER_BREAKCOIN,
+                        shard=config.CURRENCY_SHARD,
+                        currency=config.CURRENCY_BREAKCOIN,
+                        current=shards,
+                    )
+                ),
+                ephemeral=True,
+            )
+            return
+
+        embed = embeds.success(
+            strings.CRAFT_TITLE,
+            strings.CRAFT_SUCCESS.format(
+                needed=config.SHARDS_PER_BREAKCOIN,
+                shard=config.CURRENCY_SHARD,
+                currency=config.CURRENCY_BREAKCOIN,
+                coins=fmt_number(coins),
+                shards=fmt_number(shards),
+            ),
+        )
+        await ctx.send(embed=embeds.with_author(embed, ctx.author))
+        logger.info(
+            "BreakCoin crafted | guild=%s user=%s coins=%s shards=%s",
+            ctx.guild.id,
+            ctx.author.id,
+            coins,
+            shards,
+        )
 
     @commands.hybrid_command(
         name="transfer", aliases=["pay"], description="Dona Puntos de Fe a otro miembro."

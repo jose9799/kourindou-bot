@@ -5,6 +5,7 @@ moves faith is atomic and always writes an audit row into `transactions`.
 """
 
 import logging
+import random
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -71,6 +72,14 @@ class Database:
         if "breakcoins" not in user_cols:
             await self._conn.execute(
                 "ALTER TABLE users ADD COLUMN breakcoins INTEGER NOT NULL DEFAULT 0"
+            )
+        if "breakcoin_shards" not in user_cols:
+            await self._conn.execute(
+                "ALTER TABLE users ADD COLUMN breakcoin_shards INTEGER NOT NULL DEFAULT 0"
+            )
+        if "breakcoin_pity" not in user_cols:
+            await self._conn.execute(
+                "ALTER TABLE users ADD COLUMN breakcoin_pity INTEGER NOT NULL DEFAULT 0"
             )
         async with self._conn.execute("PRAGMA table_info(transactions)") as cursor:
             tx_cols = {row["name"] for row in await cursor.fetchall()}
@@ -313,6 +322,80 @@ class Database:
             )
         return amount
 
+    async def get_shards(self, user_id: int, guild_id: int) -> int:
+        async with self.conn.execute(
+            "SELECT breakcoin_shards FROM users WHERE user_id = ? AND guild_id = ?",
+            (user_id, guild_id),
+        ) as cursor:
+            row = await cursor.fetchone()
+        return row["breakcoin_shards"] if row else 0
+
+    async def add_shards(
+        self,
+        user_id: int,
+        guild_id: int,
+        amount: int,
+        reason: TxReason,
+        counterparty: int | None = None,
+    ) -> int:
+        """Credit shards unconditionally and return the resulting balance."""
+        async with self._transaction():
+            await self.ensure_user(user_id, guild_id)
+            await self.conn.execute(
+                "UPDATE users SET breakcoin_shards = breakcoin_shards + ? "
+                "WHERE user_id = ? AND guild_id = ?",
+                (amount, user_id, guild_id),
+            )
+            await self._log_tx(
+                guild_id, user_id, amount, reason, counterparty, currency="shard"
+            )
+        return await self.get_shards(user_id, guild_id)
+
+    async def set_shards(self, user_id: int, guild_id: int, amount: int) -> int:
+        async with self._transaction():
+            await self.ensure_user(user_id, guild_id)
+            current = await self.get_shards(user_id, guild_id)
+            await self.conn.execute(
+                "UPDATE users SET breakcoin_shards = ? WHERE user_id = ? AND guild_id = ?",
+                (amount, user_id, guild_id),
+            )
+            await self._log_tx(
+                guild_id, user_id, amount - current, TxReason.ADMIN, currency="shard"
+            )
+        return amount
+
+    async def craft_breakcoin(self, user_id: int, guild_id: int) -> tuple[bool, int, int]:
+        """Craft 1 BreakCoin from 4 shards atomically.
+
+        Returns (success, new_coins_balance, new_shards_balance).
+        """
+        needed = config.SHARDS_PER_BREAKCOIN
+        try:
+            async with self._transaction():
+                await self.ensure_user(user_id, guild_id)
+                cursor = await self.conn.execute(
+                    "UPDATE users SET breakcoin_shards = breakcoin_shards - ?, "
+                    "breakcoins = breakcoins + 1 "
+                    "WHERE user_id = ? AND guild_id = ? AND breakcoin_shards >= ?",
+                    (needed, user_id, guild_id, needed),
+                )
+                if cursor.rowcount == 0:
+                    raise _AbortError(False)
+                await self._log_tx(
+                    guild_id, user_id, -needed, TxReason.CRAFT, currency="shard"
+                )
+                await self._log_tx(
+                    guild_id, user_id, 1, TxReason.CRAFT, currency="breakcoin"
+                )
+        except _AbortError:
+            coins = await self.get_breakcoins(user_id, guild_id)
+            shards = await self.get_shards(user_id, guild_id)
+            return False, coins, shards
+
+        coins = await self.get_breakcoins(user_id, guild_id)
+        shards = await self.get_shards(user_id, guild_id)
+        return True, coins, shards
+
     async def get_wallet(self, user_id: int, guild_id: int) -> WalletProfile:
         """Fetch the full wallet profile (all balances, rank and activity stats)."""
         await self.ensure_user(user_id, guild_id)
@@ -323,6 +406,7 @@ class Database:
             guild_id=guild_id,
             faith_points=profile["faith_points"] if profile else 0,
             breakcoins=profile["breakcoins"] if profile else 0,
+            breakcoin_shards=profile["breakcoin_shards"] if profile else 0,
             rank=rank,
             voice_minutes=profile["voice_minutes"] if profile else 0,
             daily_streak=profile["daily_streak"] if profile else 0,
@@ -342,8 +426,8 @@ class Database:
         async with self._transaction():
             await self.ensure_user(user_id, guild_id)
             async with self.conn.execute(
-                "SELECT faith_points, last_daily, daily_streak FROM users "
-                "WHERE user_id = ? AND guild_id = ?",
+                "SELECT faith_points, breakcoin_shards, breakcoin_pity, last_daily, daily_streak "
+                "FROM users WHERE user_id = ? AND guild_id = ?",
                 (user_id, guild_id),
             ) as cursor:
                 row = await cursor.fetchone()
@@ -358,6 +442,8 @@ class Database:
                     bonus=0,
                     remaining_seconds=cooldown - elapsed,
                     new_balance=row["faith_points"],
+                    shard_won=False,
+                    shards_total=row["breakcoin_shards"] if row else 0,
                 )
 
             streak = row["daily_streak"] + 1 if elapsed is not None and elapsed <= window else 1
@@ -365,12 +451,38 @@ class Database:
             bonus = base * bonus_percent // 100
             amount = base + bonus
 
+            # Shard drop probability with progressive pity
+            pity = row["breakcoin_pity"]
+            if pity < config.SHARD_PITY_THRESHOLD_DAYS:
+                chance_percent = config.SHARD_BASE_CHANCE_PERCENT
+            else:
+                chance_percent = (
+                    config.SHARD_BASE_CHANCE_PERCENT
+                    + (pity - config.SHARD_PITY_THRESHOLD_DAYS + 1)
+                    * config.SHARD_PITY_INCREMENT_PERCENT
+                )
+
+            # Roll with 0.01% resolution (1 to 10000)
+            roll = random.randint(1, 10000)
+            shard_won = roll <= int(chance_percent * 100)
+            current_shards = row["breakcoin_shards"]
+
+            if shard_won:
+                new_shards = current_shards + 1
+                new_pity = 0
+            else:
+                new_shards = current_shards
+                new_pity = pity + 1
+
             await self.conn.execute(
                 "UPDATE users SET faith_points = faith_points + ?, last_daily = ?, "
-                "daily_streak = ? WHERE user_id = ? AND guild_id = ?",
-                (amount, now, streak, user_id, guild_id),
+                "daily_streak = ?, breakcoin_shards = ?, breakcoin_pity = ? "
+                "WHERE user_id = ? AND guild_id = ?",
+                (amount, now, streak, new_shards, new_pity, user_id, guild_id),
             )
-            await self._log_tx(guild_id, user_id, amount, TxReason.DAILY)
+            await self._log_tx(guild_id, user_id, amount, TxReason.DAILY, currency="faith")
+            if shard_won:
+                await self._log_tx(guild_id, user_id, 1, TxReason.DAILY_SHARD, currency="shard")
             new_balance = row["faith_points"] + amount
 
         return DailyResult(
@@ -380,6 +492,8 @@ class Database:
             bonus=bonus,
             remaining_seconds=0,
             new_balance=new_balance,
+            shard_won=shard_won,
+            shards_total=new_shards,
         )
 
     # ------------------------------------------------------------------- transfer

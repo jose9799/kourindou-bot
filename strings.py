@@ -24,6 +24,17 @@ BALANCE_VOICE = "**{minutes}** minutos en los canales de voz"
 WALLET_TITLE = "👛 Monedero de {user}"
 WALLET_FAITH_FIELD = "🌸 Puntos de Fe"
 WALLET_BREAKCOIN_FIELD = "🪙 BreakCoins"
+WALLET_SHARD_FIELD = "🧩 Fragmentos de BreakCoin"
+WALLET_SHARD_LINE = "**{current}**/{needed} {shard}"
+
+DAILY_SHARD_TITLE = "🧩 Fragmento de BreakCoin"
+DAILY_SHARD_WON = "✨ ¡Un destello misterioso cruza la Barrera! Has obtenido **1** {shard} (**{total}**/{needed})."
+DAILY_SHARD_READY = "🔨 ¡Tienes suficientes fragmentos! Usa `/craft` para forjar una {currency}."
+DAILY_SHARD_NONE = "🌫️ La Barrera no ha cedido ningún fragmento esta vez (**{total}**/{needed})."
+
+CRAFT_TITLE = "🔨 Forja de BreakCoin"
+CRAFT_SUCCESS = "✨ Has fundido **{needed}** {shard} y forjado **1** {currency}.\nTu saldo: **{coins}** {currency} · Fragmentos restantes: **{shards}** {shard}."
+CRAFT_INSUFFICIENT = "❌ Necesitas al menos **{needed}** {shard} para forjar una {currency}. Tienes **{current}**."
 
 TRANSFER_TO_SELF = "🌀 No puedes donarte Fe a ti mismo."
 TRANSFER_TO_BOT = "🤖 Los youkai mecánicos no aceptan ofrendas."
@@ -139,6 +150,7 @@ ADMIN_ROLE_TOO_HIGH = (
 )
 ADMIN_ECO_DONE = "✅ Saldo de Fe de {user} actualizado a **{balance}** {currency}."
 ADMIN_ECO_BREAKCOIN_DONE = "✅ BreakCoins de {user} actualizados a **{balance}** {currency}."
+ADMIN_ECO_SHARDS_DONE = "✅ Fragmentos de BreakCoin de {user} actualizados a **{balance}** {currency}."
 ADMIN_AUDIT_TITLE = "🧾 Movimientos de {user}"
 ADMIN_AUDIT_EMPTY = "Sin movimientos registrados."
 ADMIN_ITEM_ROLE_REQUIRED = "❌ Un artículo de tipo `role` necesita el argumento `rol`."

@@ -38,8 +38,10 @@ chat, minijuegos de azar/Danmaku y utilidades para organizar partidas multijugad
 * **Moneda Principal:** Puntos de Fe (🌸 `Faith Points`). Referida en textos de sabor como
   "P-Items" o "Poder" indistintamente, pero es **el mismo contador**.
 * **Moneda Especial:** BreakCoin (🪙 `breakcoins`). Moneda secundaria para eventos y utilidades futuras.
-* **Monedero (`/wallet`):** Muestra el resumen de todas las monedas del usuario.
+* **Fragmentos de BreakCoin (🧩 `breakcoin_shards`):** Se obtienen como drop raro en `/daily` con Pity Progresivo. 4 fragmentos se funden en 1 BreakCoin mediante `/craft`.
+* **Monedero (`/wallet`):** Muestra el resumen de todas las monedas del usuario de forma privada.
 * **Recompensa Diaria (`/daily`):** *Ofrenda al Santuario Hakurei*.
+* **Forja / Crafteo (`/craft`):** Convierte 4 fragmentos en 1 BreakCoin.
 * **Tienda (`/shop`):** *Tienda Kourindou* — artefactos, roles de facción y permisos VIP.
 * **Minijuegos (`/games`):** *Duelos Danmaku / Apuestas de Gensokyo*.
 
@@ -86,15 +88,17 @@ de cooldown.
 -- Un usuario por servidor. La PK es COMPUESTA: el mismo usuario de Discord en dos
 -- guilds son dos economías independientes.
 CREATE TABLE IF NOT EXISTS users (
-    user_id        INTEGER NOT NULL,
-    guild_id       INTEGER NOT NULL,
-    faith_points   INTEGER NOT NULL DEFAULT 0,
-    breakcoins     INTEGER NOT NULL DEFAULT 0,
-    last_daily     INTEGER,            -- epoch UTC del último /daily reclamado
-    daily_streak   INTEGER NOT NULL DEFAULT 0,
-    voice_minutes  INTEGER NOT NULL DEFAULT 0,  -- acumulado histórico (estadística)
-    last_message   INTEGER,            -- epoch UTC, para el cooldown de Fe por chat
-    created_at     INTEGER NOT NULL,
+    user_id          INTEGER NOT NULL,
+    guild_id         INTEGER NOT NULL,
+    faith_points     INTEGER NOT NULL DEFAULT 0,
+    breakcoins       INTEGER NOT NULL DEFAULT 0,
+    breakcoin_shards INTEGER NOT NULL DEFAULT 0,
+    breakcoin_pity   INTEGER NOT NULL DEFAULT 0,
+    last_daily       INTEGER,            -- epoch UTC del último /daily reclamado
+    daily_streak     INTEGER NOT NULL DEFAULT 0,
+    voice_minutes    INTEGER NOT NULL DEFAULT 0,  -- acumulado histórico (estadística)
+    last_message     INTEGER,            -- epoch UTC, para el cooldown de Fe por chat
+    created_at       INTEGER NOT NULL,
     PRIMARY KEY (user_id, guild_id)
 );
 
@@ -212,9 +216,10 @@ CREATE INDEX IF NOT EXISTS idx_shop_guild  ON shop_items (guild_id, enabled);
 
 | Comando | Alias | Descripción |
 |---------|-------|-------------|
-| `/daily` | `!daily` | *Ofrenda al Santuario Hakurei*. Otorga Fe con cooldown. |
+| `/daily` | `!daily` | *Ofrenda al Santuario Hakurei*. Otorga Fe con cooldown y posibilidad de Fragmento de BreakCoin. |
 | `/faith [miembro]` | `!balance` | Consulta el saldo propio o de un miembro (Puntos de Fe). |
-| `/wallet` | `!wallet`, `!cartera`, `!monedero` | Consulta privada (efímera) del propio monedero (Fe y BreakCoins). |
+| `/wallet` | `!wallet`, `!cartera`, `!monedero` | Consulta privada (efímera) del propio monedero (Fe, BreakCoins y Fragmentos). |
+| `/craft` | `!craft`, `!craftear`, `!forjar` | Funde 4 Fragmentos para forjar 1 BreakCoin. |
 | `/transfer <miembro> <cantidad>` | `!pay` | Donación de Fe entre miembros. |
 | `/leaderboard` | `!top` | Top 10 de fieles del servidor. |
 
@@ -223,6 +228,11 @@ CREATE INDEX IF NOT EXISTS idx_shop_guild  ON shop_items (guild_id, enabled);
   usuario no vaya retrasando su hora de reclamo cada día.
 * Racha (`daily_streak`): se incrementa si se reclama antes de 48h desde el anterior; se
   reinicia a 1 si se pasa. Bonus de `+10%` por día de racha, con tope de `+100%`.
+* **Drop de Fragmentos de BreakCoin (🧩) con Pity Progresivo:**
+  * Probabilidad base (intentos 1 a 15 sin fragmento): **2%**.
+  * Escalado de Pity (a partir del intento 16): **+3%** diario adicional acumulativo.
+  * Reset: al obtener un fragmento, el contador de pity vuelve a 0 y la probabilidad al 2%.
+  * Calibración: media de ~22.5 días por fragmento ($\approx$ 1 BreakCoin completa cada 3 meses para usuarios diarios). Máximo garantizado antes del día 48.
 
 **Reglas de `/transfer`:**
 * Bloqueado hacia uno mismo y hacia bots.

@@ -10,6 +10,8 @@ from enum import Enum
 
 class TxReason(str, Enum):
     DAILY = "daily"
+    DAILY_SHARD = "daily_shard"
+    CRAFT = "craft"
     CHAT = "chat"
     VOICE = "voice"
     TRANSFER_IN = "transfer_in"
@@ -58,6 +60,8 @@ class DailyResult:
     bonus: int
     remaining_seconds: int
     new_balance: int
+    shard_won: bool = False
+    shards_total: int = 0
 
 
 @dataclass(frozen=True, slots=True)
@@ -73,6 +77,7 @@ class WalletProfile:
     guild_id: int
     faith_points: int
     breakcoins: int
+    breakcoin_shards: int
     rank: int
     voice_minutes: int
     daily_streak: int
