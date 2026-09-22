@@ -18,7 +18,25 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
-TEXT_KEYS = ("command_prefix", config.EXCLUDED_CHANNELS_KEY)
+TEXT_KEYS = (
+    "command_prefix",
+    config.CHAT_ALLOWED_CHANNELS_KEY,
+    config.CHAT_EXCLUDED_CHANNELS_KEY,
+    config.VOICE_ALLOWED_CHANNELS_KEY,
+    config.VOICE_EXCLUDED_CHANNELS_KEY,
+)
+
+KEY_ALIASES = {
+    "chat_alloweds_channels": config.CHAT_ALLOWED_CHANNELS_KEY,
+    "chat_excludeds_channels": config.CHAT_EXCLUDED_CHANNELS_KEY,
+    "voice_alloweds_channels": config.VOICE_ALLOWED_CHANNELS_KEY,
+    "voice_excludeds_channels": config.VOICE_EXCLUDED_CHANNELS_KEY,
+}
+
+
+def normalize_config_key(key: str) -> str:
+    normalized = key.strip().lower()
+    return KEY_ALIASES.get(normalized, normalized)
 
 # Catalogue seeded by /shopadmin seed. Roles are left out on purpose: their ids
 # are server specific and must be added one by one with the payload argument.
@@ -56,7 +74,7 @@ class AdminCog(commands.Cog, name="Administración"):
     @config_group.command(name="set", description="Cambia un valor de configuración.")
     async def config_set(self, ctx: commands.Context, key: str, value: str) -> None:
         assert ctx.guild is not None
-        key = key.strip().lower()
+        key = normalize_config_key(key)
         if key not in config.SETTING_DEFAULTS and key not in TEXT_KEYS:
             await self._unknown_key(ctx)
             return
@@ -74,7 +92,7 @@ class AdminCog(commands.Cog, name="Administración"):
     @config_group.command(name="reset", description="Devuelve un valor a su defecto.")
     async def config_reset(self, ctx: commands.Context, key: str) -> None:
         assert ctx.guild is not None
-        key = key.strip().lower()
+        key = normalize_config_key(key)
         if key not in config.SETTING_DEFAULTS and key not in TEXT_KEYS:
             await self._unknown_key(ctx)
             return

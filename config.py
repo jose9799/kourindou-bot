@@ -94,4 +94,10 @@ VOICE_SETTLE_INTERVAL_MINUTES = 5
 SQUAD_LIFETIME_SECONDS = 12 * 3600
 SHOP_VIEW_TIMEOUT = 120
 LEADERBOARD_LIMIT = 10
-EXCLUDED_CHANNELS_KEY = "chat_excluded_channels"
+# Channel filters for passive Fe gains. A channel is eligible when it is not in the
+# exclusion list and, if an allowlist exists, it belongs to that list as well.
+CHAT_ALLOWED_CHANNELS_KEY = "chat_allowed_channels"
+CHAT_EXCLUDED_CHANNELS_KEY = "chat_excluded_channels"
+VOICE_ALLOWED_CHANNELS_KEY = "voice_allowed_channels"
+VOICE_EXCLUDED_CHANNELS_KEY = "voice_excluded_channels"
+EXCLUDED_CHANNELS_KEY = CHAT_EXCLUDED_CHANNELS_KEY

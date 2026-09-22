@@ -1,7 +1,6 @@
 """Passive faith rewards for chatting and for sitting in voice channels."""
 
 import logging
-import random
 from typing import TYPE_CHECKING
 
 import discord
@@ -15,10 +14,39 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
+def _parse_channel_ids(raw: str) -> set[int]:
+    if not raw:
+        return set()
+    ids: set[int] = set()
+    for part in raw.split(","):
+        token = part.strip()
+        if not token:
+            continue
+        try:
+            ids.add(int(token))
+        except ValueError:
+            logger.warning("Ignoring invalid channel id in activity filter: %r", token)
+    return ids
+
+
+def channel_is_allowed(allowlist_raw: str, denylist_raw: str, channel_id: int) -> bool:
+    allowlist = _parse_channel_ids(allowlist_raw)
+    denylist = _parse_channel_ids(denylist_raw)
+
+    if channel_id in denylist:
+        return False
+    if allowlist and channel_id not in allowlist:
+        return False
+    return True
+
+
 class ActivityCog(commands.Cog, name="Actividad"):
     def __init__(self, bot: "KourindouBot") -> None:
         self.bot = bot
         self.settle_voice.start()
+
+    async def _daily_reward_amount(self, guild_id: int) -> int:
+        return await self.bot.db.get_setting(guild_id, "daily_base_reward")
 
     async def cog_unload(self) -> None:
         self.settle_voice.cancel()
@@ -34,7 +62,7 @@ class ActivityCog(commands.Cog, name="Actividad"):
         min_length = await self.bot.db.get_setting(guild_id, "chat_min_length")
         if len(message.content.strip()) < min_length:
             return
-        if await self._is_excluded_channel(guild_id, message.channel.id):
+        if not await self._is_channel_allowed(guild_id, message.channel.id, "chat"):
             return
 
         # Command invocations are not chat activity.
@@ -42,17 +70,23 @@ class ActivityCog(commands.Cog, name="Actividad"):
         if context.valid:
             return
 
-        low = await self.bot.db.get_setting(guild_id, "chat_reward_min")
-        high = await self.bot.db.get_setting(guild_id, "chat_reward_max")
         cooldown = await self.bot.db.get_setting(guild_id, "chat_cooldown_seconds")
-        amount = random.randint(min(low, high), max(low, high))
+        amount = await self._daily_reward_amount(guild_id)
         await self.bot.db.try_award_chat(message.author.id, guild_id, amount, cooldown)
 
-    async def _is_excluded_channel(self, guild_id: int, channel_id: int) -> bool:
-        raw = await self.bot.db.get_text_setting(guild_id, config.EXCLUDED_CHANNELS_KEY)
-        if not raw:
-            return False
-        return str(channel_id) in {part.strip() for part in raw.split(",")}
+    async def _is_channel_allowed(
+        self, guild_id: int, channel_id: int, kind: str
+    ) -> bool:
+        if kind == "chat":
+            allowed_key = config.CHAT_ALLOWED_CHANNELS_KEY
+            excluded_key = config.CHAT_EXCLUDED_CHANNELS_KEY
+        else:
+            allowed_key = config.VOICE_ALLOWED_CHANNELS_KEY
+            excluded_key = config.VOICE_EXCLUDED_CHANNELS_KEY
+
+        allowlist = await self.bot.db.get_text_setting(guild_id, allowed_key)
+        denylist = await self.bot.db.get_text_setting(guild_id, excluded_key)
+        return channel_is_allowed(allowlist, denylist, channel_id)
 
     # ------------------------------------------------------------------ voice
 
@@ -76,6 +110,10 @@ class ActivityCog(commands.Cog, name="Actividad"):
 
         if before.channel is not None and before.channel.id != after.channel.id:
             await self._settle(member, before.channel, before)
+
+        if not await self._is_channel_allowed(guild_id, after.channel.id, "voice"):
+            await self.bot.db.close_voice_session(member.id, guild_id)
+            return
 
         await self.bot.db.open_voice_session(member.id, guild_id, after.channel.id)
 
@@ -135,6 +173,8 @@ class ActivityCog(commands.Cog, name="Actividad"):
     ) -> None:
         """Pay out the whole minutes accrued, discarding the ones that do not qualify."""
         guild_id = member.guild.id
+        if channel is not None and not await self._is_channel_allowed(guild_id, channel.id, "voice"):
+            return
         minutes = await self.bot.db.consume_voice_minutes(member.id, guild_id)
         if minutes <= 0:
             return
@@ -143,7 +183,7 @@ class ActivityCog(commands.Cog, name="Actividad"):
         if not _is_eligible(member, channel, state, min_humans):
             return
         if per_minute is None:
-            per_minute = await self.bot.db.get_setting(guild_id, "voice_faith_per_minute")
+            per_minute = await self._daily_reward_amount(guild_id)
         await self.bot.db.award_voice(member.id, guild_id, minutes, minutes * per_minute)
 
 
