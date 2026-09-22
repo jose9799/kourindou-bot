@@ -130,9 +130,30 @@ locales.
 - `/leaderboard` — Top 10 de fieles del servidor.
 
 ### Actividad (Fase 3)
-- **Chat:** 5-15 🌸 por mensaje, cooldown de 60s.
-- **Voz:** 2 🌸 por minuto, liquidados cada 5 minutos. No se paga si estás solo en el canal,
-  ensordecido, o en el canal AFK.
+- **Chat:** la misma cantidad que `/daily` por mensaje válido, con cooldown configurable.
+- **Voz:** recompensa por minutos activos, liquidada cada 5 minutos. La cantidad por minuto
+  usa el mismo valor base del `/daily` y se paga solo si el usuario cumple las reglas de
+  participación.
+- **Canales permitidos/excluidos:** puedes limitar qué canales cuentan con
+  `chat_allowed_channels`, `chat_excluded_channels`, `voice_allowed_channels` y
+  `voice_excluded_channels`.
+- **Condiciones anti-abuso:** no se paga en el canal AFK, si estás solo, si estás ensordecido,
+  o si no cumples las condiciones del evento (mensaje corto, comando del bot, etc.).
+
+### Configuración de actividad
+```text
+/config set chat_allowed_channels 123456789,987654321
+/config set chat_excluded_channels 111111111
+/config set voice_allowed_channels 222222222,333333333
+/config set voice_excluded_channels 444444444
+```
+
+- Si `*_allowed_channels` está vacío, todo canal válido cuenta.
+- Si hay `*_excluded_channels`, esos canales quedan fuera aunque estén en la allowlist.
+- Si no hay configuración, la actividad sigue activa por defecto para todos los canales válidos.
+
+> La recompensa por actividad usa el valor de `daily_base_reward`, así que todos los puntos
+> pasivos siguen siendo equivalentes al premio principal del día.
 
 ### Tienda Kourindou (Fase 4)
 - Roles temáticos: Mansión del Diablo Escarlata, Tengu de la Montaña Youkai, Hadas del Lago,
@@ -196,6 +217,20 @@ python scripts/backup_db.py --keep 14
 
 El bot necesita **dos intents privilegiados** que hay que activar a mano en el portal. Si
 faltan, el bot arranca pero las funciones fallan silenciosamente:
+
+### Configuración de canales por servidor
+
+Los administradores pueden limitar la actividad pasiva desde el comando de configuración:
+
+```text
+/config set chat_allowed_channels 123456789,987654321
+/config set chat_excluded_channels 111111111
+/config set voice_allowed_channels 222222222,333333333
+/config set voice_excluded_channels 444444444
+```
+
+También se aceptan sinónimos como `chat_alloweds_channels` y `voice_alloweds_channels` por
+compatibilidad, aunque los nombres canónicos son los anteriores.
 
 - ✅ **Message Content Intent** — para la Fe por chat y los comandos con prefijo.
 - ✅ **Server Members Intent** — para `/teams`, roles de tienda y menciones.
